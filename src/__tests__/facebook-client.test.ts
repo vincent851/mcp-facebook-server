@@ -275,6 +275,75 @@ describe("FacebookClient", () => {
     expect(result).toEqual(expected);
   });
 
+  // ── Marketplace / Commerce ────────────────────────────────────────────
+
+  it("getMarketplaceListings calls /{pageId}/commerce_listings", async () => {
+    const fetchMock = mockFetch({ data: [] });
+    globalThis.fetch = fetchMock;
+
+    await client.getMarketplaceListings("page123", "5");
+
+    const calledUrl = new URL(fetchMock.mock.calls[0][0] as string);
+    expect(calledUrl.pathname).toBe("/v21.0/page123/commerce_listings");
+    expect(calledUrl.searchParams.get("limit")).toBe("5");
+    expect(fetchMock.mock.calls[0][1].method).toBe("GET");
+  });
+
+  it("getListingDetails calls /{listingId} with fields", async () => {
+    const fetchMock = mockFetch({ id: "listing123", name: "Widget" });
+    globalThis.fetch = fetchMock;
+
+    await client.getListingDetails("listing123");
+
+    const calledUrl = new URL(fetchMock.mock.calls[0][0] as string);
+    expect(calledUrl.pathname).toBe("/v21.0/listing123");
+    expect(calledUrl.searchParams.get("fields")).toContain("id");
+    expect(fetchMock.mock.calls[0][1].method).toBe("GET");
+  });
+
+  it("createMarketplaceListing sends POST with listing data", async () => {
+    const fetchMock = mockFetch({ id: "new_listing" });
+    globalThis.fetch = fetchMock;
+
+    await client.createMarketplaceListing("page123", {
+      name: "Widget",
+      description: "A nice widget",
+      price: 25,
+      currency: "USD",
+    });
+
+    const [url, options] = fetchMock.mock.calls[0];
+    const calledUrl = new URL(url as string);
+    expect(calledUrl.pathname).toBe("/v21.0/page123/commerce_listings");
+    expect(options.method).toBe("POST");
+    const body = JSON.parse(options.body as string);
+    expect(body.name).toBe("Widget");
+    expect(body.price).toBe(25);
+  });
+
+  it("updateMarketplaceListing sends POST to /{listingId}", async () => {
+    const fetchMock = mockFetch({ success: true });
+    globalThis.fetch = fetchMock;
+
+    await client.updateMarketplaceListing("listing123", { price: 30 });
+
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(new URL(url as string).pathname).toBe("/v21.0/listing123");
+    expect(options.method).toBe("POST");
+    expect(JSON.parse(options.body as string)).toEqual({ price: 30 });
+  });
+
+  it("deleteMarketplaceListing sends DELETE to /{listingId}", async () => {
+    const fetchMock = mockFetch({ success: true });
+    globalThis.fetch = fetchMock;
+
+    await client.deleteMarketplaceListing("listing123");
+
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(new URL(url as string).pathname).toBe("/v21.0/listing123");
+    expect(options.method).toBe("DELETE");
+  });
+
   // ── No body on non-POST ──────────────────────────────────────────────
 
   it("does not send body on DELETE requests", async () => {

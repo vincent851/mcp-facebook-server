@@ -228,6 +228,130 @@ server.tool(
   }
 );
 
+// ── Marketplace / Commerce ──────────────────────────────────────────
+
+server.tool(
+  "get_marketplace_listings",
+  "Get commerce/marketplace listings for a Facebook Page",
+  {
+    page_id: z.string().describe("The Facebook Page ID"),
+    limit: z
+      .string()
+      .optional()
+      .describe("Maximum number of listings to return (default: 10)"),
+    fields: z
+      .string()
+      .optional()
+      .describe(
+        "Comma-separated list of fields (default: id,name,description,price,currency,condition,availability,image_url)"
+      ),
+  },
+  async ({ page_id, limit, fields }) => {
+    const result = await fb.getMarketplaceListings(
+      page_id,
+      limit ?? undefined,
+      fields ?? undefined
+    );
+    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  "get_listing_details",
+  "Get detailed information about a specific marketplace listing",
+  {
+    listing_id: z.string().describe("The listing ID"),
+    fields: z
+      .string()
+      .optional()
+      .describe(
+        "Comma-separated list of fields (default: id,name,description,price,currency,condition,availability,image_url,retailer_id,category)"
+      ),
+  },
+  async ({ listing_id, fields }) => {
+    const result = await fb.getListingDetails(listing_id, fields ?? undefined);
+    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  "create_marketplace_listing",
+  "Create a new marketplace/commerce listing on a Facebook Page",
+  {
+    page_id: z.string().describe("The Facebook Page ID to list on"),
+    name: z.string().describe("Product/listing name"),
+    description: z.string().describe("Product/listing description"),
+    price: z.number().describe("Price of the item"),
+    currency: z
+      .string()
+      .optional()
+      .describe("Currency code, e.g. USD (default: USD)"),
+    condition: z
+      .string()
+      .optional()
+      .describe("Item condition: new, used_like_new, used_good, used_fair"),
+    availability: z
+      .string()
+      .optional()
+      .describe("Availability status: in stock, out of stock"),
+    image_url: z.string().optional().describe("URL of the product image"),
+    category: z.string().optional().describe("Product category"),
+  },
+  async ({ page_id, name, description, price, currency, condition, availability, image_url, category }) => {
+    const data: Record<string, unknown> = {
+      name,
+      description,
+      price,
+      currency: currency ?? "USD",
+    };
+    if (condition) data.condition = condition;
+    if (availability) data.availability = availability;
+    if (image_url) data.image_url = image_url;
+    if (category) data.category = category;
+
+    const result = await fb.createMarketplaceListing(
+      page_id,
+      data as Parameters<typeof fb.createMarketplaceListing>[1]
+    );
+    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  "update_marketplace_listing",
+  "Update an existing marketplace/commerce listing",
+  {
+    listing_id: z.string().describe("The listing ID to update"),
+    name: z.string().optional().describe("Updated product name"),
+    description: z.string().optional().describe("Updated description"),
+    price: z.number().optional().describe("Updated price"),
+    currency: z.string().optional().describe("Updated currency code"),
+    condition: z.string().optional().describe("Updated condition"),
+    availability: z.string().optional().describe("Updated availability"),
+    image_url: z.string().optional().describe("Updated image URL"),
+  },
+  async ({ listing_id, ...updates }) => {
+    const data: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) data[key] = value;
+    }
+    const result = await fb.updateMarketplaceListing(listing_id, data);
+    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  "delete_marketplace_listing",
+  "Delete a marketplace/commerce listing",
+  {
+    listing_id: z.string().describe("The listing ID to delete"),
+  },
+  async ({ listing_id }) => {
+    const result = await fb.deleteMarketplaceListing(listing_id);
+    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
 } // end registerTools
 
 // ── Start ───────────────────────────────────────────────────────────────

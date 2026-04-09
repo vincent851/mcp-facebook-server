@@ -41,10 +41,14 @@ describe("MCP Server", () => {
 
     expect(toolNames).toEqual([
       "create_comment",
+      "create_marketplace_listing",
       "create_post",
+      "delete_marketplace_listing",
       "delete_post",
       "get_comments",
       "get_likes",
+      "get_listing_details",
+      "get_marketplace_listings",
       "get_page_details",
       "get_page_insights",
       "get_pages",
@@ -53,6 +57,7 @@ describe("MCP Server", () => {
       "get_profile",
       "like_object",
       "unlike_object",
+      "update_marketplace_listing",
     ]);
   });
 
@@ -172,6 +177,86 @@ describe("MCP Server", () => {
 
     const [url, options] = fetchMock.mock.calls[0];
     expect(new URL(url as string).pathname).toBe("/v21.0/post123/likes");
+    expect(options.method).toBe("DELETE");
+  });
+
+  // ── Marketplace tools ──────────────────────────────────────────────
+
+  it("get_marketplace_listings fetches commerce listings for a page", async () => {
+    const fetchMock = mockFetch({ data: [{ id: "listing1", name: "Widget" }] });
+    globalThis.fetch = fetchMock;
+
+    await client.callTool({
+      name: "get_marketplace_listings",
+      arguments: { page_id: "page123" },
+    });
+
+    const calledUrl = new URL(fetchMock.mock.calls[0][0] as string);
+    expect(calledUrl.pathname).toBe("/v21.0/page123/commerce_listings");
+  });
+
+  it("get_listing_details fetches a specific listing", async () => {
+    const fetchMock = mockFetch({ id: "listing1", name: "Widget", price: 25 });
+    globalThis.fetch = fetchMock;
+
+    await client.callTool({
+      name: "get_listing_details",
+      arguments: { listing_id: "listing1" },
+    });
+
+    const calledUrl = new URL(fetchMock.mock.calls[0][0] as string);
+    expect(calledUrl.pathname).toBe("/v21.0/listing1");
+  });
+
+  it("create_marketplace_listing sends POST with listing data", async () => {
+    const fetchMock = mockFetch({ id: "new_listing" });
+    globalThis.fetch = fetchMock;
+
+    await client.callTool({
+      name: "create_marketplace_listing",
+      arguments: {
+        page_id: "page123",
+        name: "Widget",
+        description: "A nice widget",
+        price: 25,
+      },
+    });
+
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(new URL(url as string).pathname).toBe("/v21.0/page123/commerce_listings");
+    expect(options.method).toBe("POST");
+    const body = JSON.parse(options.body as string);
+    expect(body.name).toBe("Widget");
+    expect(body.price).toBe(25);
+    expect(body.currency).toBe("USD");
+  });
+
+  it("update_marketplace_listing sends POST to listing endpoint", async () => {
+    const fetchMock = mockFetch({ success: true });
+    globalThis.fetch = fetchMock;
+
+    await client.callTool({
+      name: "update_marketplace_listing",
+      arguments: { listing_id: "listing1", price: 30 },
+    });
+
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(new URL(url as string).pathname).toBe("/v21.0/listing1");
+    expect(options.method).toBe("POST");
+    expect(JSON.parse(options.body as string).price).toBe(30);
+  });
+
+  it("delete_marketplace_listing sends DELETE request", async () => {
+    const fetchMock = mockFetch({ success: true });
+    globalThis.fetch = fetchMock;
+
+    await client.callTool({
+      name: "delete_marketplace_listing",
+      arguments: { listing_id: "listing1" },
+    });
+
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(new URL(url as string).pathname).toBe("/v21.0/listing1");
     expect(options.method).toBe("DELETE");
   });
 

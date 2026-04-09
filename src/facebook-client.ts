@@ -142,6 +142,49 @@ export class FacebookClient {
     return this.request(`/${targetId}/photos`, { fields, limit, type: "uploaded" });
   }
 
+  // Marketplace / Commerce listings
+  async getMarketplaceListings(
+    pageId: string,
+    limit: string = "10",
+    fields: string = "id,name,description,price,currency,condition,availability,image_url"
+  ): Promise<GraphAPIResponse> {
+    return this.request(`/${pageId}/commerce_listings`, { fields, limit });
+  }
+
+  async getListingDetails(
+    listingId: string,
+    fields: string = "id,name,description,price,currency,condition,availability,image_url,retailer_id,category"
+  ): Promise<GraphAPIResponse> {
+    return this.request(`/${listingId}`, { fields });
+  }
+
+  async createMarketplaceListing(
+    pageId: string,
+    data: {
+      name: string;
+      description: string;
+      price: number;
+      currency: string;
+      condition?: string;
+      availability?: string;
+      image_url?: string;
+      category?: string;
+    }
+  ): Promise<GraphAPIResponse> {
+    return this.request(`/${pageId}/commerce_listings`, {}, "POST", data);
+  }
+
+  async updateMarketplaceListing(
+    listingId: string,
+    data: Record<string, unknown>
+  ): Promise<GraphAPIResponse> {
+    return this.request(`/${listingId}`, {}, "POST", data);
+  }
+
+  async deleteMarketplaceListing(listingId: string): Promise<GraphAPIResponse> {
+    return this.request(`/${listingId}`, {}, "DELETE");
+  }
+
   // Page insights
   async getPageInsights(
     pageId: string,
